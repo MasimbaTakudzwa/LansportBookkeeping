@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Loader2, AlertTriangle, Upload, CheckCircle, AlertCircle, MinusCircle } from "lucide-react";
+import { Loader2, AlertTriangle, Upload, CheckCircle, AlertCircle, MinusCircle, Download } from "lucide-react";
 import Link from "next/link";
 import { formatCurrency } from "@/lib/utils";
 
@@ -209,11 +209,21 @@ export default function RatiosPage() {
   return (
     <div className="p-6">
       {/* Header */}
-      <div className="mb-6">
-        <h2 className="text-xl font-bold text-foreground">Financial Ratios</h2>
-        <p className="text-xs text-muted-foreground mt-0.5">
-          Key performance indicators and balance sheet health metrics
-        </p>
+      <div className="flex items-start justify-between mb-6">
+        <div>
+          <h2 className="text-xl font-bold text-foreground">Financial Ratios</h2>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Key performance indicators and balance sheet health metrics
+          </p>
+        </div>
+        <a
+          href="/api/export/ratios"
+          download
+          className="inline-flex items-center gap-1.5 px-3 py-2 text-xs rounded-md border border-border text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+        >
+          <Download className="h-3.5 w-3.5" />
+          Export CSV
+        </a>
       </div>
 
       {/* Base figures summary */}

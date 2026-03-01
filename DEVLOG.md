@@ -30,6 +30,7 @@
 | 006     | 2026-03-01 | Expense Analytics + Cash Flow pages    | Phase 2, Sprint 6 (Wk 7-8) | COMPLETED |
 | 007     | 2026-03-01 | General Ledger Explorer (search + page)| Phase 3, Sprint 7 (Wk 9)   | COMPLETED |
 | 008     | 2026-03-01 | Financial Ratios — all 7 pages live    | Phase 3, Sprint 8 (Wk 10)  | COMPLETED |
+| 009     | 2026-03-01 | CSV export + Upload History page       | Phase 4, Sprint 9 (Wk 11)  | COMPLETED |
 
 ---
 
@@ -836,5 +837,65 @@ Tasks for future sprints:
 
 ################################################################################
 # END OF ENTRY 008
+################################################################################
+
+################################################################################
+# ENTRY 009
+# DATE: 2026-03-01
+# PHASE: Phase 4 - Polish & Production Readiness | Sprint 9 - CSV Export + History (Wk 11)
+# STATUS: COMPLETED
+################################################################################
+
+## Summary
+CSV export added to Per-Unit, General Ledger (filter-aware) and Financial Ratios
+pages. Upload History page added to sidebar showing full audit trail of imports.
+
+## What Was Done
+
+### Shared Utility — `apps/web/src/lib/csv.ts`
+- `buildCsv(headers, rows)` — constructs CSV string with RFC-4180 quoting
+- `csvHeaders(filename)` — returns Content-Type + Content-Disposition headers
+- `today()` — YYYY-MM-DD string for filenames
+
+### Export API Routes — `apps/web/src/app/api/export/`
+- `GET /api/export/per-unit` → `per-unit-YYYY-MM-DD.csv`
+  All 17 units: Unit, Group, Revenue, R&M, Levy, Net, Margin%
+- `GET /api/export/ledger?q=&account=&type=` → `ledger[-filtered]-YYYY-MM-DD.csv`
+  Respects same filter params as the ledger page; exports ALL matching rows (no pagination)
+- `GET /api/export/ratios` → `financial-ratios-YYYY-MM-DD.csv`
+  Fetches from /api/dashboard/ratios internally; exports flat table: Category, Metric, Value, Unit
+
+### Export Buttons
+- Per-Unit page: "Export CSV" button in page header (top-right)
+- General Ledger page: "Export CSV" button at the end of the filter bar
+  — href built dynamically from current q/account/type state
+- Financial Ratios page: "Export CSV" button in page header (top-right)
+- All use `<a href="..." download>` — browser handles file save dialog
+
+### Upload History — `apps/web/src/app/api/upload/history/route.ts`
+`GET /api/upload/history` — queries upload_history via Prisma ORM, ordered newest first.
+Checksum truncated to 12 chars + "…" for display. Returns: id, filename, checksum,
+status, rowCount, errorMessage, uploadedAt.
+
+### Upload History Page — `(dashboard)/history/page.tsx`
+Table columns: Filename, Uploaded (en-ZA locale), Status badge, Entries, Checksum.
+Status badges: green CheckCircle (complete), blue Clock (processing), red XCircle (error).
+Error message shown under badge if present (truncated with title tooltip).
+Empty state: upload CTA. "Upload New" button in page header.
+Added to sidebar as 8th nav item with History icon.
+
+## What Comes Next: Phase 4, Sprint 10 (Wk 12) — Redis Caching + Date Range Filter
+
+Tasks:
+- [ ] Redis caching: cache /api/dashboard/summary and /api/dashboard/ratios responses
+      (TTL: 5 minutes; invalidated on new upload completing)
+- [ ] Add cache invalidation in ETL loader.py: POST to /api/cache/invalidate after
+      successful load (or call Redis directly from Python)
+- [ ] Date range filter: add month/year pickers to Executive Dashboard and other pages
+      allowing the user to filter all charts/KPIs to a selected period
+      (requires adding ?from=&to= params to all chart API routes)
+
+################################################################################
+# END OF ENTRY 009
 # NEXT ENTRY WILL BE APPENDED BELOW THIS LINE
 ################################################################################

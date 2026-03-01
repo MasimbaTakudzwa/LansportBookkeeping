@@ -11,6 +11,7 @@ import {
   BookOpen,
   DollarSign,
   Upload,
+  History,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -26,6 +27,7 @@ const NAV_ITEMS = [
   { href: "/cash-flow",  icon: Droplets,    label: "Cash Flow",           active: true  },
   { href: "/ledger",     icon: BookOpen,    label: "General Ledger",      active: true  },
   { href: "/ratios",     icon: DollarSign,  label: "Financial Ratios",    active: true  },
+  { href: "/history",    icon: History,     label: "Upload History",      active: true  },
 ];
 
 // ─────────────────────────────────────────────────────────────────────────────

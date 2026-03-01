@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Loader2, AlertTriangle, ArrowUpDown, Upload } from "lucide-react";
+import { Loader2, AlertTriangle, ArrowUpDown, Upload, Download } from "lucide-react";
 import Link from "next/link";
 import { formatCurrency } from "@/lib/utils";
 
@@ -147,11 +147,21 @@ export default function PerUnitPage() {
 
   return (
     <div className="p-6">
-      <div className="mb-6">
-        <h2 className="text-xl font-bold text-foreground">Per-Unit Profitability</h2>
-        <p className="text-xs text-muted-foreground mt-0.5">
-          Net contribution margin for all {rows.length} rental units. Click a column heading to sort.
-        </p>
+      <div className="flex items-start justify-between mb-6">
+        <div>
+          <h2 className="text-xl font-bold text-foreground">Per-Unit Profitability</h2>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Net contribution margin for all {rows.length} rental units. Click a column heading to sort.
+          </p>
+        </div>
+        <a
+          href="/api/export/per-unit"
+          download
+          className="inline-flex items-center gap-1.5 px-3 py-2 text-xs rounded-md border border-border text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+        >
+          <Download className="h-3.5 w-3.5" />
+          Export CSV
+        </a>
       </div>
 
       <div className="rounded-lg border border-border bg-card overflow-hidden">

@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback, useRef } from "react";
 import {
-  Loader2, AlertTriangle, Upload, Search, X, ChevronLeft, ChevronRight,
+  Loader2, AlertTriangle, Upload, Search, X, ChevronLeft, ChevronRight, Download,
 } from "lucide-react";
 import Link from "next/link";
 import { formatCurrency } from "@/lib/utils";
@@ -174,7 +174,7 @@ export default function LedgerPage() {
       </div>
 
       {/* Filter bar */}
-      <div className="flex flex-wrap gap-2 mb-4">
+      <div className="flex flex-wrap gap-2 mb-4 items-center">
         {/* Search */}
         <div className="relative flex-1 min-w-[200px] max-w-xs">
           <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
@@ -221,6 +221,23 @@ export default function LedgerPage() {
             Clear filters
           </button>
         )}
+
+        {/* Export — placed at the end, uses current filter state */}
+        <a
+          href={`/api/export/ledger${(() => {
+            const p = new URLSearchParams();
+            if (query)   p.set("q",       query);
+            if (account) p.set("account", account);
+            if (type)    p.set("type",    type);
+            const s = p.toString();
+            return s ? `?${s}` : "";
+          })()}`}
+          download
+          className="ml-auto inline-flex items-center gap-1.5 px-3 py-2 text-xs rounded-md border border-border text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+        >
+          <Download className="h-3.5 w-3.5" />
+          Export CSV
+        </a>
       </div>
 
       {/* Table */}
