@@ -22,8 +22,8 @@ const NAV_ITEMS = [
   { href: "/dashboard",  icon: BarChart3,   label: "Executive Dashboard", active: true  },
   { href: "/per-unit",   icon: Building2,   label: "Per-Unit Profitability", active: true  },
   { href: "/revenue",    icon: TrendingUp,  label: "Revenue Analytics",   active: true  },
-  { href: "/expenses",   icon: PieChart,    label: "Expense Analytics",   active: false },
-  { href: "/cash-flow",  icon: Droplets,    label: "Cash Flow",           active: false },
+  { href: "/expenses",   icon: PieChart,    label: "Expense Analytics",   active: true  },
+  { href: "/cash-flow",  icon: Droplets,    label: "Cash Flow",           active: true  },
   { href: "/ledger",     icon: BookOpen,    label: "General Ledger",      active: false },
   { href: "/ratios",     icon: DollarSign,  label: "Financial Ratios",    active: false },
 ];

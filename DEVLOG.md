@@ -27,6 +27,7 @@
 | 003     | 2026-03-01 | Period summaries, live KPIs, integrity | Phase 1, Sprint 3 (Wk 3)  | COMPLETED |
 | 004     | 2026-03-01 | Charts, per-unit table, sidebar nav    | Phase 2, Sprint 4 (Wk 4)  | COMPLETED |
 | 005     | 2026-03-01 | Revenue Analytics page + charts        | Phase 2, Sprint 5 (Wks 5-6)| COMPLETED |
+| 006     | 2026-03-01 | Expense Analytics + Cash Flow pages    | Phase 2, Sprint 6 (Wk 7-8) | COMPLETED |
 
 ---
 
@@ -590,5 +591,84 @@ Tasks:
 
 ################################################################################
 # END OF ENTRY 005
+################################################################################
+
+################################################################################
+# ENTRY 006
+# DATE: 2026-03-01
+# PHASE: Phase 2 - Core Dashboards | Sprint 6 - Expense Analytics + Cash Flow (Wks 7-8)
+# STATUS: COMPLETED
+################################################################################
+
+## Summary
+Two new analytics pages built and activated in the sidebar:
+- Expense Analytics (`/expenses`): trend chart + donut + sortable breakdown table
+- Cash Flow (`/cash-flow`): running balance chart + full transaction ledger for account #1000
+
+## What Was Done
+
+### API Routes
+- `GET /api/dashboard/charts/expense-trend`
+  Monthly total EXPENSE debits with MoM % change (same pattern as revenue-trend).
+
+- `GET /api/dashboard/cash-flow`
+  All journal entries for account #1000 (Cash), ordered by date.
+  Running balance computed in TypeScript. Returns: date, description, inflow, outflow, balance.
+
+### Chart Component
+- `expense-trend-chart.tsx` — AreaChart with red gradient, custom tooltip.
+  MoM change note: positive MoM change = expenses rising (bad), shown in red.
+  Negative MoM = expenses falling (good), shown in green.
+
+### Expense Analytics Page (`(dashboard)/expenses/page.tsx`)
+4 KPI cards: Total Expenses, Category Count, Largest Category (name + amount), MoM Change.
+Layout:
+- Row 1: Expense trend AreaChart (full width)
+- Row 2: Expense donut chart (left, reuses existing component) + sortable breakdown table (right)
+Table sortable by Category name, Amount, or % of Total.
+`ChangeChip` colouring inverted vs revenue: rising expenses = red, falling = green.
+
+### Cash Flow Page (`(dashboard)/cash-flow/page.tsx`)
+4 KPI cards: Current Balance, Total Inflows, Total Outflows, Net Change.
+Layout:
+- Running balance AreaChart (reuses `CashBalanceChart` from dashboard)
+- Full transaction table: Date, Description, Inflow (debit), Outflow (credit), Running Balance
+  Each row is a journal entry in account #1000.
+
+### Sidebar
+- Expense Analytics: `active: false` → `active: true`
+- Cash Flow: `active: false` → `active: true`
+- Sidebar now has 5 active pages: Dashboard, Per-Unit, Revenue, Expenses, Cash Flow
+
+## Key Decisions
+
+1. **MoM change colour inversion for expenses**: For revenue, rising = green (good).
+   For expenses, rising = red (bad), falling = green (good). Same `ChangeChip` component,
+   different icon/colour logic.
+
+2. **`/api/dashboard/cash-flow` vs `/api/dashboard/charts/cash-balance`**:
+   The `charts/cash-balance` endpoint returns daily aggregated net movements (one row per day).
+   The new `cash-flow` endpoint returns every individual transaction with running balance.
+   Both are needed: chart uses aggregated, table uses detailed.
+
+3. **Reusing chart components**: `CashBalanceChart` and `ExpenseDonutChart` already existed
+   from the Executive Dashboard. No new chart components needed for Cash Flow page.
+
+## What Comes Next: Phase 3, Sprint 7 (Week 9) — General Ledger Explorer
+
+**Goal:** Searchable, filterable journal entry explorer
+
+Tasks:
+- [ ] Create `/ledger` page under `(dashboard)` route group
+- [ ] Full-text search across description field (client-side filter)
+- [ ] Filter by: account number, account type, date range, debit/credit
+- [ ] Add `GET /api/dashboard/ledger` endpoint — paginated journal entries
+      (all entries, joined with account name + type; supports ?account=, ?type=, ?q=)
+- [ ] Mark General Ledger sidebar item as `active: true` in layout
+- [ ] Pagination: 50 entries per page, page controls at bottom
+- [ ] Show running total (debits/credits) for filtered view
+
+################################################################################
+# END OF ENTRY 006
 # NEXT ENTRY WILL BE APPENDED BELOW THIS LINE
 ################################################################################
