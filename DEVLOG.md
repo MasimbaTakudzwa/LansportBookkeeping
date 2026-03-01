@@ -29,6 +29,7 @@
 | 005     | 2026-03-01 | Revenue Analytics page + charts        | Phase 2, Sprint 5 (Wks 5-6)| COMPLETED |
 | 006     | 2026-03-01 | Expense Analytics + Cash Flow pages    | Phase 2, Sprint 6 (Wk 7-8) | COMPLETED |
 | 007     | 2026-03-01 | General Ledger Explorer (search + page)| Phase 3, Sprint 7 (Wk 9)   | COMPLETED |
+| 008     | 2026-03-01 | Financial Ratios — all 7 pages live    | Phase 3, Sprint 8 (Wk 10)  | COMPLETED |
 
 ---
 
@@ -752,5 +753,88 @@ Tasks:
 
 ################################################################################
 # END OF ENTRY 007
+################################################################################
+
+################################################################################
+# ENTRY 008
+# DATE: 2026-03-01
+# PHASE: Phase 3 - Advanced Features | Sprint 8 - Financial Ratios (Wk 10)
+# STATUS: COMPLETED
+################################################################################
+
+## Summary
+Financial Ratios page at `/ratios` — the final analytics module. All 7
+sidebar pages are now fully live (no more "Soon" badges). 8 financial ratios
+computed across 3 categories: Profitability, Liquidity, Leverage.
+
+## What Was Done
+
+### API Route — `GET /api/dashboard/ratios`
+Single complex CTE query computing all components:
+- Revenue, Expenses, Net Income (income statement)
+- Total Assets (ASSET net + CONTRA_ASSET adjustment), Liabilities, Equity (balance sheet)
+- Current Assets (account_number < 2000), Current Liabilities (account_number < 3000)
+- Cash position (account #1000)
+
+8 ratios computed in TypeScript from these components:
+- Profitability: Net Profit Margin %, Return on Equity %, Return on Assets %
+- Liquidity: Current Ratio, Quick Ratio, Cash Ratio
+- Leverage: Debt-to-Equity, Debt Ratio
+- `safe(n, d)` helper returns null when denominator is 0 (avoids division by zero, shows N/A)
+
+### Financial Ratios Page (`(dashboard)/ratios/page.tsx`)
+3 ratio sections each with a heading + grid of `RatioCard` components:
+  - Profitability (3 cards)
+  - Liquidity (3 cards)
+  - Leverage (2 cards + placeholder)
+
+`RatioCard` component:
+- Label, value (formatted as % or 2-decimal), health icon (CheckCircle/AlertCircle/AlertTriangle/MinusCircle)
+- Description text explaining what the ratio measures
+- Benchmark text (industry context for SA residential rentals)
+- Health colour coding: green=good, yellow=warn, red=bad, gray=neutral/N/A
+
+Health thresholds (provisional, SA residential rental context):
+  - Net/Operating Margin: good ≥70%, warn ≥40%, bad <40%
+  - ROE/ROA: good ≥15%, warn ≥8%, bad <8%
+  - Current/Quick/Cash: good ≥2/1/0.5, warn ≥1/0.5/0.2, bad below
+  - Debt-to-Equity: good ≤0.5, warn ≤1.5, bad >1.5
+  - Debt Ratio: good ≤0.4, warn ≤0.6, bad >0.6
+
+Base figures KPI strip at top: Revenue, Expenses, Total Assets, Equity.
+Footnote disclaimer: liquidity ratios need liabilities populated to be meaningful.
+
+### Sidebar
+- Financial Ratios: `active: false` → `active: true`
+- ALL 7 pages now active — no "Soon" badges remain in sidebar
+
+## Phases Completed
+
+| Phase   | Sprints | Milestones                                      |
+|---------|---------|-------------------------------------------------|
+| Phase 1 | 1-3     | Scaffolding, ETL pipeline, integrity checks     |
+| Phase 2 | 4-6     | Dashboard, per-unit, revenue, expenses, cash flow|
+| Phase 3 | 7-8     | General Ledger, Financial Ratios                |
+
+## What Comes Next: Phase 4 — Polish & Production Readiness
+
+Tasks for future sprints:
+- [ ] Export: CSV export of any table (ledger, per-unit, ratios)
+- [ ] PDF report: one-page monthly summary (revenue, expenses, ratios)
+- [ ] Date range filter: allow selecting which months to include in all dashboards
+- [ ] Multi-workbook history: show upload history, allow switching between uploads
+- [ ] Performance: add Redis caching for expensive queries (dashboard summary, ratios)
+- [ ] Auth: optional password protection (environment variable)
+- [ ] Cloudflare Tunnel: expose app to internet without port forwarding
+- [ ] UI polish: dark/light mode toggle, responsive mobile layout
+
+## Blockers / Open Questions
+- Liquidity ratios (current/quick/cash) will show N/A until liability accounts
+  have journal entries. The current workbook has no liability entries.
+- Benchmarks are provisional for SA residential rental context. May need
+  adjustment once multiple months of real data are available.
+
+################################################################################
+# END OF ENTRY 008
 # NEXT ENTRY WILL BE APPENDED BELOW THIS LINE
 ################################################################################
