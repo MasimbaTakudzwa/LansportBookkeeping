@@ -19,7 +19,7 @@ interface DataPoint {
 }
 
 const tickFormatter = (v: number) =>
-  `R${v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v}`;
+  `$${v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v}`;
 
 function CustomTooltip({
   active,

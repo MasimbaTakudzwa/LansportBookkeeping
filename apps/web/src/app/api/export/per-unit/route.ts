@@ -37,7 +37,7 @@ export async function GET() {
       ORDER BY p.display_order
     `);
 
-    const headers = ["Unit", "Group", "Revenue (ZAR)", "R&M (ZAR)", "Levy (ZAR)", "Net (ZAR)", "Margin (%)"];
+    const headers = ["Unit", "Group", "Revenue (USD)", "R&M (USD)", "Levy (USD)", "Net (USD)", "Margin (%)"];
     const csvRows = rows.map((r) => {
       const revenue = parseFloat(r.revenue);
       const rm      = parseFloat(r.rm);

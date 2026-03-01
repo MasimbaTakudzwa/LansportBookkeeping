@@ -140,7 +140,7 @@ export default function HistoryPage() {
                     <span className="font-medium text-foreground">{r.filename}</span>
                   </td>
                   <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">
-                    {new Date(r.uploadedAt).toLocaleString("en-ZA", {
+                    {new Date(r.uploadedAt).toLocaleString("en-US", {
                       dateStyle: "medium",
                       timeStyle: "short",
                     })}

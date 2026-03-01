@@ -178,7 +178,7 @@ export default function DashboardPage() {
   useEffect(() => { fetchAll(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const lastUpload = summary?.lastUploadDate
-    ? new Date(summary.lastUploadDate).toLocaleString("en-ZA", {
+    ? new Date(summary.lastUploadDate).toLocaleString("en-US", {
         dateStyle: "medium",
         timeStyle: "short",
       })

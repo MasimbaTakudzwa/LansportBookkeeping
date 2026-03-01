@@ -19,16 +19,16 @@ export async function GET(req: Request) {
     const headers = ["Category", "Metric", "Value", "Unit"];
     const rows: (string | number)[][] = [
       // Income statement
-      ["Income", "Total Revenue",    income.totalRevenue,    "ZAR"],
-      ["Income", "Total Expenses",   income.totalExpenses,   "ZAR"],
-      ["Income", "Net Income",       income.netIncome,       "ZAR"],
+      ["Income", "Total Revenue",    income.totalRevenue,    "USD"],
+      ["Income", "Total Expenses",   income.totalExpenses,   "USD"],
+      ["Income", "Net Income",       income.netIncome,       "USD"],
       ["Income", "Operating Margin", income.operatingMargin ?? "", "%"],
       ["Income", "Expense Ratio",    income.expenseRatio    ?? "", "%"],
       // Balance sheet
-      ["Balance Sheet", "Total Assets",       balanceSheet.totalAssets,       "ZAR"],
-      ["Balance Sheet", "Total Liabilities",  balanceSheet.totalLiabilities,  "ZAR"],
-      ["Balance Sheet", "Total Equity",       balanceSheet.totalEquity,       "ZAR"],
-      ["Balance Sheet", "Cash Position",      balanceSheet.cashPosition,      "ZAR"],
+      ["Balance Sheet", "Total Assets",       balanceSheet.totalAssets,       "USD"],
+      ["Balance Sheet", "Total Liabilities",  balanceSheet.totalLiabilities,  "USD"],
+      ["Balance Sheet", "Total Equity",       balanceSheet.totalEquity,       "USD"],
+      ["Balance Sheet", "Cash Position",      balanceSheet.cashPosition,      "USD"],
       // Ratios
       ["Profitability", "Net Profit Margin",  ratios.netProfitMargin  ?? "N/A", "%"],
       ["Profitability", "Return on Equity",   ratios.returnOnEquity   ?? "N/A", "%"],

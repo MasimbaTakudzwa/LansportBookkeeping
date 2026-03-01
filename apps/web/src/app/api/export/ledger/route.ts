@@ -65,7 +65,7 @@ export async function GET(req: Request) {
       ...binds
     );
 
-    const headers = ["Date", "Account #", "Account Name", "Type", "Description", "Debit (ZAR)", "Credit (ZAR)"];
+    const headers = ["Date", "Account #", "Account Name", "Type", "Description", "Debit (USD)", "Credit (USD)"];
     const csvRows = rows.map((r) => [
       r.date,
       r.account_number,

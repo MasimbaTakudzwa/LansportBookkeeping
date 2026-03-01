@@ -8,9 +8,9 @@ export function cn(...inputs: ClassValue[]) {
 export function formatCurrency(amount: number | string | null | undefined): string {
   const num =
     amount == null ? 0 : typeof amount === "string" ? parseFloat(amount) : amount;
-  return new Intl.NumberFormat("en-ZA", {
+  return new Intl.NumberFormat("en-US", {
     style: "currency",
-    currency: "ZAR",
+    currency: "USD",
     minimumFractionDigits: 2,
   }).format(num);
 }
@@ -20,5 +20,5 @@ export function formatPercentage(value: number, decimals = 1): string {
 }
 
 export function formatNumber(value: number): string {
-  return new Intl.NumberFormat("en-ZA").format(value);
+  return new Intl.NumberFormat("en-US").format(value);
 }

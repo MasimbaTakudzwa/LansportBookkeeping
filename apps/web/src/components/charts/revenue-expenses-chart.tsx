@@ -20,7 +20,7 @@ interface DataPoint {
 }
 
 const tickFormatter = (v: number) =>
-  `R${v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v}`;
+  `$${v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v}`;
 
 export function RevenueExpensesChart({ data }: { data: DataPoint[] }) {
   if (!data || data.length === 0) {

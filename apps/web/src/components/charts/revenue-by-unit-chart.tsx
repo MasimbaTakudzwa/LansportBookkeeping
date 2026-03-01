@@ -42,7 +42,7 @@ export function RevenueByUnitChart({ data }: { data: DataPoint[] }) {
         <CartesianGrid strokeDasharray="3 3" horizontal={false} className="stroke-border" />
         <XAxis
           type="number"
-          tickFormatter={(v) => `R${v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v}`}
+          tickFormatter={(v) => `$${v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v}`}
           tick={{ fontSize: 11 }}
         />
         <YAxis
