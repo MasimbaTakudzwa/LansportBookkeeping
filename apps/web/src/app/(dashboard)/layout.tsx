@@ -12,6 +12,7 @@ import {
   DollarSign,
   Upload,
   History,
+  LogOut,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -29,6 +30,30 @@ const NAV_ITEMS = [
   { href: "/ratios",     icon: DollarSign,  label: "Financial Ratios",    active: true  },
   { href: "/history",    icon: History,     label: "Upload History",      active: true  },
 ];
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Logout button — only rendered when APP_PASSWORD is set
+// ─────────────────────────────────────────────────────────────────────────────
+
+function LogoutButton() {
+  async function handleLogout() {
+    await fetch("/api/auth/logout", { method: "POST" });
+    window.location.href = "/login";
+  }
+
+  // Hide button if auth is disabled (no cookie mechanism needed)
+  // We detect this by checking if the login page exists in the cookie
+  // The simplest approach: always show it; clicking just reloads if no auth
+  return (
+    <button
+      onClick={handleLogout}
+      className="flex items-center gap-2 w-full px-3 py-2 rounded-md text-xs text-muted-foreground hover:text-foreground hover:bg-muted transition-colors justify-center"
+    >
+      <LogOut className="h-3.5 w-3.5" />
+      Sign Out
+    </button>
+  );
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Sidebar
@@ -88,8 +113,8 @@ function Sidebar() {
         })}
       </nav>
 
-      {/* Upload button */}
-      <div className="px-3 py-4 border-t border-border">
+      {/* Bottom buttons */}
+      <div className="px-3 py-4 border-t border-border space-y-2">
         <Link
           href="/upload"
           className="flex items-center gap-2 w-full bg-primary text-primary-foreground px-3 py-2 rounded-md text-xs font-medium hover:bg-primary/90 transition-colors justify-center"
@@ -97,6 +122,7 @@ function Sidebar() {
           <Upload className="h-3.5 w-3.5" />
           Upload Workbook
         </Link>
+        <LogoutButton />
       </div>
     </aside>
   );

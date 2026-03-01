@@ -32,6 +32,7 @@
 | 008     | 2026-03-01 | Financial Ratios — all 7 pages live    | Phase 3, Sprint 8 (Wk 10)  | COMPLETED |
 | 009     | 2026-03-01 | CSV export + Upload History page       | Phase 4, Sprint 9 (Wk 11)  | COMPLETED |
 | 010     | 2026-03-01 | Redis caching + date range filter      | Phase 4, Sprint 10 (Wk 12) | COMPLETED |
+| 011     | 2026-03-01 | Auth (APP_PASSWORD) + logout           | Phase 4, Sprint 11 (Wk 13) | COMPLETED |
 
 ---
 
@@ -988,5 +989,76 @@ Tasks:
 
 ################################################################################
 # END OF ENTRY 010
+################################################################################
+
+################################################################################
+# ENTRY 011
+# DATE: 2026-03-01
+# PHASE: Phase 4 - Polish & Production Readiness | Sprint 11 - Auth (Wk 13)
+# STATUS: COMPLETED
+################################################################################
+
+## Summary
+Optional single-password protection via Next.js middleware. Set APP_PASSWORD
+in .env to lock the app. Leave blank (default) for open access. Login page,
+logout endpoint, and Sign Out button in sidebar all wired up.
+
+## What Was Done
+
+### Middleware — `apps/web/src/middleware.ts`
+- Reads `APP_PASSWORD` from environment.
+- If not set: all requests pass through (open access — the default).
+- If set: checks `lansport_auth` httpOnly cookie. If cookie value matches password, allow.
+- API routes: 401 JSON on failure. Page routes: redirect to `/login?from=<original-path>`.
+- Public paths always allowed: `/login`, `/api/auth/login`, `/api/auth/logout`, `/api/health`.
+- Static assets (`/_next`, favicons) also always allowed.
+
+### Auth API Routes
+- `POST /api/auth/login` — validates `{ password }` against APP_PASSWORD.
+  On success: sets `lansport_auth` httpOnly cookie (30-day max-age).
+  On failure: 401 `{ error: "Incorrect password" }`.
+- `POST /api/auth/logout` — clears `lansport_auth` cookie (maxAge: 0).
+
+### Login Page — `apps/web/src/app/login/page.tsx`
+Password form with Lansport branding. On success redirects to `from` param (or /dashboard).
+Error message shown inline. `<Suspense>` wrapper for useSearchParams (Next.js requirement).
+
+### Sidebar
+- `LogoutButton` component: calls POST /api/auth/logout then redirects to /login.
+  Shown below Upload Workbook button. Uses LogOut icon from lucide-react.
+  Always visible (harmless if auth is disabled — just shows the login page).
+
+### Configuration
+- `.env.example`: added `APP_PASSWORD=` (blank = disabled) with explanation comment.
+- `docker-compose.yml`: added `APP_PASSWORD=${APP_PASSWORD:-}` to web service environment.
+
+## Key Decisions
+
+1. **Single shared password, no user accounts**: The use case is a household/small team
+   sharing access to financial data. Full auth (OAuth, JWT, user DB) would be over-engineering.
+   A single password set via environment variable is the simplest secure approach.
+
+2. **httpOnly cookie**: The password itself is the token (simple but effective for
+   single-password auth). httpOnly prevents XSS access. Not using JWT since there's no
+   concept of a user identity — just "authenticated or not".
+
+3. **Opt-in auth (disabled by default)**: The app works completely without setting
+   APP_PASSWORD. This matches the local-first design — developers and local users don't
+   need to fight auth to use the app.
+
+## What Comes Next: Phase 4, Sprint 12 (Wk 14) — Production Readiness
+
+This is the FINAL sprint before the SDP's 14-week plan is complete.
+
+Tasks:
+- [ ] Health check improvements: /api/health returns DB + Redis status
+- [ ] Error boundaries: add React error boundary to (dashboard) layout
+- [ ] Loading states: skeleton loaders instead of full-page spinners
+- [ ] Responsive layout: test and fix mobile layout for sidebar (collapsible)
+- [ ] Cloudflare Tunnel instructions: add CLOUDFLARE_TUNNEL.md guide
+- [ ] Final documentation: update README.md with setup, usage, and screenshots guide
+
+################################################################################
+# END OF ENTRY 011
 # NEXT ENTRY WILL BE APPENDED BELOW THIS LINE
 ################################################################################
