@@ -31,6 +31,7 @@
 | 007     | 2026-03-01 | General Ledger Explorer (search + page)| Phase 3, Sprint 7 (Wk 9)   | COMPLETED |
 | 008     | 2026-03-01 | Financial Ratios — all 7 pages live    | Phase 3, Sprint 8 (Wk 10)  | COMPLETED |
 | 009     | 2026-03-01 | CSV export + Upload History page       | Phase 4, Sprint 9 (Wk 11)  | COMPLETED |
+| 010     | 2026-03-01 | Redis caching + date range filter      | Phase 4, Sprint 10 (Wk 12) | COMPLETED |
 
 ---
 
@@ -897,5 +898,95 @@ Tasks:
 
 ################################################################################
 # END OF ENTRY 009
+################################################################################
+
+################################################################################
+# ENTRY 010
+# DATE: 2026-03-01
+# PHASE: Phase 4 - Polish & Production Readiness | Sprint 10 - Caching + Date Filter (Wk 12)
+# STATUS: COMPLETED
+################################################################################
+
+## Summary
+Redis caching wired into the two most expensive API endpoints (5 min TTL,
+auto-invalidated on upload completion). Four chart routes now accept date range
+params. Dashboard gets a period picker that appears when multi-month data exists.
+
+## What Was Done
+
+### Redis Client — `apps/web/src/lib/redis.ts`
+Singleton ioredis client with graceful degradation:
+- If REDIS_URL is not set or Redis is unreachable, all cache operations are no-ops.
+- `cacheGet(key)`, `cacheSet(key, value, ttlSeconds)`, `cacheInvalidate(pattern)`
+- `lazyConnect: true`, `maxRetriesPerRequest: 1`, `connectTimeout: 2000` — fails fast.
+- Added `ioredis: ^5.4.1` to `apps/web/package.json`
+
+### Cache Invalidation — `POST /api/cache/invalidate`
+Deletes all keys matching `dashboard:*` pattern.
+Called automatically by the upload status route when status === "complete" or "error".
+This means: next page load after ETL finishes always gets fresh data (no stale 5-min window).
+
+### Available Periods — `GET /api/dashboard/periods`
+Returns distinct calendar months in the journal_entries table.
+Format: `[{ value: "2026-01-01", label: "Jan 2026" }]`
+Used to populate the period picker dropdowns on the dashboard.
+
+### Cached Routes
+- `/api/dashboard/summary`: Redis key `dashboard:summary`, TTL 5 min.
+  Serves cache hit immediately; fetches from DB and caches on miss.
+- `/api/dashboard/ratios`: Redis key `dashboard:ratios`, TTL 5 min.
+
+### Date-Range Chart Routes (all accept `?from=YYYY-MM-01&to=YYYY-MM-01`)
+- `charts/revenue-expenses` — WHERE je.date >= from AND je.date < to + 1 month
+- `charts/revenue-trend`    — same
+- `charts/expense-trend`    — same
+- `charts/cash-balance`     — same
+Date params validated against regex `^\d{4}-\d{2}-\d{2}$` before use in SQL.
+Positional binds (`$1::date`) for all injected values.
+
+### Dashboard Period Picker
+- Fetches /api/dashboard/periods on initial load.
+- When multiple months exist: shows two `<select>` dropdowns ("Charts: From → To")
+  in the header strip next to Refresh button.
+- On change: calls fetchAll(from, to) — re-fetches all 4 chart endpoints with new params.
+- KPI cards (summary) always show all-time figures (noted in UI).
+- With single month data: picker hidden (no purpose).
+
+### Upload Status — Cache Invalidation Hook
+`apps/web/src/app/api/upload/status/[checksum]/route.ts` updated:
+On status "complete" or "error", calls `cacheInvalidate("dashboard:*")`.
+This fires on every status poll once complete — idempotent (deleting non-existent keys is safe).
+
+## Key Decisions
+
+1. **Graceful Redis degradation**: App fully functional without Redis. Cache is a
+   performance optimisation, not a correctness requirement. All operations wrapped in try/catch.
+
+2. **Cache invalidation via status polling**: Simpler than ETL calling back into the web service.
+   The browser polls the status; when "complete" is returned, the same request invalidates cache.
+   Next chart fetch is guaranteed fresh. No webhook or reverse-call architecture needed.
+
+3. **KPI cards always all-time**: The summary endpoint is cached without date filter.
+   Adding date filtering to summary would require per-period cache keys and more complex UI.
+   "KPIs = all-time, Charts = filtered period" is a reasonable and common dashboard pattern.
+
+4. **Date filter hidden with single period**: No point showing From/To selectors when
+   there's only one month. Selector appears automatically as more months are added to workbook.
+
+## What Comes Next: Phase 4, Sprint 11 (Wk 13) — Auth + Final Polish
+
+Tasks:
+- [ ] Optional password protection: if `APP_PASSWORD` env var set, require login
+      (simple single-password middleware — no user accounts)
+- [ ] Add `APP_PASSWORD` to .env.example and docker-compose.yml environment
+- [ ] Middleware: apps/web/src/middleware.ts — redirect unauthenticated to /login
+- [ ] Login page: apps/web/src/app/login/page.tsx — password form, sets httpOnly cookie
+- [ ] POST /api/auth/login — validates APP_PASSWORD, sets signed cookie
+- [ ] GET /api/auth/logout — clears cookie, redirects to /login
+- [ ] UI polish: add version/build info to sidebar footer
+- [ ] Add CHANGELOG or release notes section to DEVLOG index
+
+################################################################################
+# END OF ENTRY 010
 # NEXT ENTRY WILL BE APPENDED BELOW THIS LINE
 ################################################################################

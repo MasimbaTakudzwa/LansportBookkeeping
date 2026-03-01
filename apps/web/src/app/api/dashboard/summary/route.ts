@@ -1,19 +1,25 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import { cacheGet, cacheSet } from "@/lib/redis";
 
-export const dynamic = "force-dynamic"; // never cache — always fresh data
+export const dynamic = "force-dynamic"; // never cache at HTTP layer
+
+const CACHE_KEY = "dashboard:summary";
+const CACHE_TTL = 300; // 5 minutes
 
 export async function GET() {
   try {
+    // ── Redis cache ───────────────────────────────────────────────────────────
+    const cached = await cacheGet(CACHE_KEY);
+    if (cached) return NextResponse.json(JSON.parse(cached));
+
     // Check if any data has been loaded
     const entryCount = await db.journalEntry.count();
-
     if (entryCount === 0) {
       return NextResponse.json({ hasData: false });
     }
 
-    // ── Core KPIs ────────────────────────────────────────────────────────
-    // Using $queryRawUnsafe — all values are hardcoded, no user input
+    // ── Core KPIs ─────────────────────────────────────────────────────────────
     const [kpis] = await db.$queryRawUnsafe<
       {
         total_revenue: string;
@@ -63,7 +69,7 @@ export async function GET() {
       FROM rev r, exp e, cash c, occupied o
     `);
 
-    // ── Metadata ─────────────────────────────────────────────────────────
+    // ── Metadata ──────────────────────────────────────────────────────────────
     const [meta] = await db.$queryRawUnsafe<
       { entry_count: string; last_upload: Date | null }[]
     >(`
@@ -75,18 +81,21 @@ export async function GET() {
       FROM journal_entries
     `);
 
-    return NextResponse.json({
-      hasData: true,
-      totalRevenue:     parseFloat(kpis.total_revenue),
-      totalExpenses:    parseFloat(kpis.total_expenses),
-      netIncome:        parseFloat(kpis.net_income),
-      cashPosition:     parseFloat(kpis.cash_position),
-      operatingMargin:  parseFloat(kpis.operating_margin),
-      occupiedUnits:    parseInt(kpis.occupied_units, 10),
-      totalUnits:       17,
-      entryCount:       parseInt(meta.entry_count, 10),
-      lastUploadDate:   meta.last_upload?.toISOString() ?? null,
-    });
+    const result = {
+      hasData:        true,
+      totalRevenue:   parseFloat(kpis.total_revenue),
+      totalExpenses:  parseFloat(kpis.total_expenses),
+      netIncome:      parseFloat(kpis.net_income),
+      cashPosition:   parseFloat(kpis.cash_position),
+      operatingMargin: parseFloat(kpis.operating_margin),
+      occupiedUnits:  parseInt(kpis.occupied_units, 10),
+      totalUnits:     17,
+      entryCount:     parseInt(meta.entry_count, 10),
+      lastUploadDate: meta.last_upload?.toISOString() ?? null,
+    };
+
+    await cacheSet(CACHE_KEY, JSON.stringify(result), CACHE_TTL);
+    return NextResponse.json(result);
   } catch (error) {
     console.error("Dashboard summary error:", error);
     return NextResponse.json(

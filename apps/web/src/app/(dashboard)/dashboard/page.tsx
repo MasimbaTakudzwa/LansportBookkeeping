@@ -129,25 +129,44 @@ export default function DashboardPage() {
   const [error, setError]     = useState<string | null>(null);
 
   // Chart data
-  const [revExpData,  setRevExpData]  = useState<{period: string; revenue: number; expenses: number}[]>([]);
-  const [cashData,    setCashData]    = useState<{date: string; balance: number}[]>([]);
+  const [revExpData,   setRevExpData]   = useState<{period: string; revenue: number; expenses: number}[]>([]);
+  const [cashData,     setCashData]     = useState<{date: string; balance: number}[]>([]);
   const [expBreakdown, setExpBreakdown] = useState<{name: string; value: number}[]>([]);
 
-  const fetchAll = () => {
+  // Period filter — available months + selected range
+  const [periods,  setPeriods]  = useState<{value: string; label: string}[]>([]);
+  const [fromDate, setFromDate] = useState("");
+  const [toDate,   setToDate]   = useState("");
+
+  const fetchAll = (from = fromDate, to = toDate) => {
     setLoading(true);
     setError(null);
 
+    const chartParams = new URLSearchParams();
+    if (from) chartParams.set("from", from);
+    if (to)   chartParams.set("to",   to);
+    const qs = chartParams.toString() ? `?${chartParams}` : "";
+
     Promise.all([
       fetch("/api/dashboard/summary").then((r) => r.json()),
-      fetch("/api/dashboard/charts/revenue-expenses").then((r) => r.json()),
-      fetch("/api/dashboard/charts/cash-balance").then((r) => r.json()),
+      fetch(`/api/dashboard/charts/revenue-expenses${qs}`).then((r) => r.json()),
+      fetch(`/api/dashboard/charts/cash-balance${qs}`).then((r) => r.json()),
       fetch("/api/dashboard/charts/expenses-breakdown").then((r) => r.json()),
+      fetch("/api/dashboard/periods").then((r) => r.json()),
     ])
-      .then(([sum, rev, cash, exp]) => {
+      .then(([sum, rev, cash, exp, pds]) => {
         setSummary(sum);
         setRevExpData(Array.isArray(rev) ? rev : []);
         setCashData(Array.isArray(cash) ? cash : []);
         setExpBreakdown(Array.isArray(exp) ? exp : []);
+        if (Array.isArray(pds) && pds.length > 0) {
+          setPeriods(pds);
+          // Default: full range on first load
+          if (!fromDate && !toDate) {
+            setFromDate(pds[0].value);
+            setToDate(pds[pds.length - 1].value);
+          }
+        }
         setLoading(false);
       })
       .catch(() => {
@@ -156,7 +175,7 @@ export default function DashboardPage() {
       });
   };
 
-  useEffect(() => { fetchAll(); }, []);
+  useEffect(() => { fetchAll(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const lastUpload = summary?.lastUploadDate
     ? new Date(summary.lastUploadDate).toLocaleString("en-ZA", {
@@ -216,7 +235,7 @@ export default function DashboardPage() {
   return (
     <div className="p-6">
       {/* Header strip */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-wrap items-start justify-between gap-3 mb-6">
         <div>
           <h2 className="text-xl font-bold text-foreground">Executive Dashboard</h2>
           {lastUpload && (
@@ -226,10 +245,31 @@ export default function DashboardPage() {
             </p>
           )}
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Period filter — only shown when multiple months exist */}
+          {periods.length > 1 && (
+            <div className="flex items-center gap-1.5 text-xs">
+              <span className="text-muted-foreground">Charts:</span>
+              <select
+                value={fromDate}
+                onChange={(e) => { setFromDate(e.target.value); fetchAll(e.target.value, toDate); }}
+                className="px-2 py-1.5 rounded-md border border-border bg-card text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+              >
+                {periods.map((p) => <option key={p.value} value={p.value}>{p.label}</option>)}
+              </select>
+              <span className="text-muted-foreground">→</span>
+              <select
+                value={toDate}
+                onChange={(e) => { setToDate(e.target.value); fetchAll(fromDate, e.target.value); }}
+                className="px-2 py-1.5 rounded-md border border-border bg-card text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+              >
+                {periods.map((p) => <option key={p.value} value={p.value}>{p.label}</option>)}
+              </select>
+            </div>
+          )}
           <IntegrityBadge />
           <button
-            onClick={fetchAll}
+            onClick={() => fetchAll()}
             className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground px-3 py-2 rounded-md hover:bg-muted transition-colors"
           >
             <RefreshCw className="h-3.5 w-3.5" />
