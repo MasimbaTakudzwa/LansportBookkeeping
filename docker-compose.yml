@@ -1,0 +1,98 @@
+version: '3.8'
+
+services:
+
+  # Next.js 14 web application + API
+  web:
+    build:
+      context: ./apps/web
+      dockerfile: Dockerfile
+    expose:
+      - "3000"
+    environment:
+      - DATABASE_URL=postgresql://lansport:${DB_PASSWORD:-lansport_dev}@postgres:5432/lansport_analytics
+      - REDIS_URL=redis://redis:6379
+      - NEXTAUTH_SECRET=${NEXTAUTH_SECRET:-change_this_in_production_use_openssl_rand}
+      - NEXTAUTH_URL=${NEXTAUTH_URL:-http://localhost}
+      - ETL_SERVICE_URL=http://etl:8000
+      - UPLOAD_DIR=/app/uploads
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - uploads_data:/app/uploads
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3000/api/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Python FastAPI ETL service — processes Excel workbooks
+  etl:
+    build:
+      context: ./apps/etl
+      dockerfile: Dockerfile
+    expose:
+      - "8000"
+    environment:
+      - DATABASE_URL=postgresql://lansport:${DB_PASSWORD:-lansport_dev}@postgres:5432/lansport_analytics
+      - UPLOAD_DIR=/app/uploads
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - uploads_data:/app/uploads
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8000/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # PostgreSQL 16 — primary data store
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      - POSTGRES_USER=lansport
+      - POSTGRES_PASSWORD=${DB_PASSWORD:-lansport_dev}
+      - POSTGRES_DB=lansport_analytics
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U lansport -d lansport_analytics"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # Redis 7 — caching and session management
+  redis:
+    image: redis:7-alpine
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # Nginx — reverse proxy (public entry point)
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "${APP_PORT:-80}:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - web
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  redis_data:
+  uploads_data:
