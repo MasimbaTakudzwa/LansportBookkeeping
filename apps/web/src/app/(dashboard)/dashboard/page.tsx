@@ -5,7 +5,6 @@ import Link from "next/link";
 import {
   CheckCircle,
   AlertTriangle,
-  Loader2,
   RefreshCw,
   Upload,
 } from "lucide-react";
@@ -13,6 +12,7 @@ import { formatCurrency } from "@/lib/utils";
 import { RevenueExpensesChart } from "@/components/charts/revenue-expenses-chart";
 import { CashBalanceChart }     from "@/components/charts/cash-balance-chart";
 import { ExpenseDonutChart }    from "@/components/charts/expense-donut-chart";
+import { DashboardSkeleton }    from "@/components/skeletons";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Types
@@ -185,14 +185,7 @@ export default function DashboardPage() {
     : null;
 
   // ── Loading ────────────────────────────────────────────────────────────────
-  if (loading) {
-    return (
-      <div className="flex flex-col items-center justify-center py-32 gap-3">
-        <Loader2 className="h-8 w-8 text-primary animate-spin" />
-        <p className="text-sm text-muted-foreground">Loading dashboard...</p>
-      </div>
-    );
-  }
+  if (loading) return <DashboardSkeleton />;
 
   // ── Error ──────────────────────────────────────────────────────────────────
   if (error) {

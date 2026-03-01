@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Loader2, AlertTriangle, CheckCircle, Clock, XCircle, Upload } from "lucide-react";
+import { AlertTriangle, CheckCircle, Clock, XCircle, Upload } from "lucide-react";
+import { TableSkeleton } from "@/components/skeletons";
 import Link from "next/link";
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -73,14 +74,7 @@ export default function HistoryPage() {
       });
   }, []);
 
-  if (loading) {
-    return (
-      <div className="flex flex-col items-center justify-center py-32 gap-3">
-        <Loader2 className="h-8 w-8 text-primary animate-spin" />
-        <p className="text-sm text-muted-foreground">Loading upload history...</p>
-      </div>
-    );
-  }
+  if (loading) return <TableSkeleton rows={8} cols={5} />;
 
   if (error) {
     return (

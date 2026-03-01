@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Loader2, AlertTriangle, Upload, TrendingUp, TrendingDown, Minus } from "lucide-react";
+import { AlertTriangle, Upload, TrendingUp, TrendingDown, Minus } from "lucide-react";
+import { AnalyticsSkeleton } from "@/components/skeletons";
 import Link from "next/link";
 import { formatCurrency } from "@/lib/utils";
 import { ExpenseTrendChart } from "@/components/charts/expense-trend-chart";
@@ -124,14 +125,7 @@ export default function ExpensesPage() {
     ? enriched.reduce((max, c) => c.value > max.value ? c : max, enriched[0])
     : null;
 
-  if (loading) {
-    return (
-      <div className="flex flex-col items-center justify-center py-32 gap-3">
-        <Loader2 className="h-8 w-8 text-primary animate-spin" />
-        <p className="text-sm text-muted-foreground">Loading expense data...</p>
-      </div>
-    );
-  }
+  if (loading) return <AnalyticsSkeleton />;
 
   if (error) {
     return (

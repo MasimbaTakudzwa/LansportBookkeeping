@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Loader2, AlertTriangle, Upload, CheckCircle, AlertCircle, MinusCircle, Download } from "lucide-react";
+import { AlertTriangle, Upload, CheckCircle, AlertCircle, MinusCircle, Download } from "lucide-react";
+import { RatiosSkeleton } from "@/components/skeletons";
 import Link from "next/link";
 import { formatCurrency } from "@/lib/utils";
 
@@ -163,14 +164,7 @@ export default function RatiosPage() {
       .catch(() => { setError("Could not load ratios."); setLoading(false); });
   }, []);
 
-  if (loading) {
-    return (
-      <div className="flex flex-col items-center justify-center py-32 gap-3">
-        <Loader2 className="h-8 w-8 text-primary animate-spin" />
-        <p className="text-sm text-muted-foreground">Computing financial ratios...</p>
-      </div>
-    );
-  }
+  if (loading) return <RatiosSkeleton />;
 
   if (error) {
     return (

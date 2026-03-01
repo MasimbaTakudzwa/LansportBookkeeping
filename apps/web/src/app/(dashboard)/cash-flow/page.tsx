@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Loader2, AlertTriangle, Upload } from "lucide-react";
+import { AlertTriangle, Upload } from "lucide-react";
+import { AnalyticsSkeleton } from "@/components/skeletons";
 import Link from "next/link";
 import { formatCurrency } from "@/lib/utils";
 import { CashBalanceChart } from "@/components/charts/cash-balance-chart";
@@ -64,14 +65,7 @@ export default function CashFlowPage() {
   const totalInflow  = flowRows.reduce((s, r) => s + r.inflow,  0);
   const totalOutflow = flowRows.reduce((s, r) => s + r.outflow, 0);
 
-  if (loading) {
-    return (
-      <div className="flex flex-col items-center justify-center py-32 gap-3">
-        <Loader2 className="h-8 w-8 text-primary animate-spin" />
-        <p className="text-sm text-muted-foreground">Loading cash flow data...</p>
-      </div>
-    );
-  }
+  if (loading) return <AnalyticsSkeleton />;
 
   if (error) {
     return (

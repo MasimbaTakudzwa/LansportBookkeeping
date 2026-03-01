@@ -33,6 +33,7 @@
 | 009     | 2026-03-01 | CSV export + Upload History page       | Phase 4, Sprint 9 (Wk 11)  | COMPLETED |
 | 010     | 2026-03-01 | Redis caching + date range filter      | Phase 4, Sprint 10 (Wk 12) | COMPLETED |
 | 011     | 2026-03-01 | Auth (APP_PASSWORD) + logout           | Phase 4, Sprint 11 (Wk 13) | COMPLETED |
+| 012     | 2026-03-01 | Final polish: health, skeleton, mobile, docs | Phase 4, Sprint 12 (Wk 14) | COMPLETED |
 
 ---
 
@@ -1060,5 +1061,132 @@ Tasks:
 
 ################################################################################
 # END OF ENTRY 011
-# NEXT ENTRY WILL BE APPENDED BELOW THIS LINE
+################################################################################
+
+################################################################################
+# ENTRY 012
+# DATE: 2026-03-01
+# PHASE: Phase 4 - Polish & Production Readiness | Sprint 12 - Final Polish (Wk 14)
+# STATUS: COMPLETED
+################################################################################
+
+## Summary
+Final sprint. Enhanced health check, React error boundary, skeleton loaders
+replacing all full-page spinners, responsive collapsible mobile sidebar,
+CLOUDFLARE_TUNNEL.md guide, and comprehensive README.md rewrite.
+All 14 planned weeks complete.
+
+## What Was Done
+
+### Health Check — `apps/web/src/app/api/health/route.ts`
+Updated from trivial "ok" to probe DB and Redis:
+- `SELECT 1` against PostgreSQL — confirms DB is reachable.
+- `cacheGet("health:ping")` — exercises Redis connection (graceful — Redis may not run in dev).
+- Returns `{ status: "ok"|"degraded", checks: { db, redis } }` with 200 / 503 status code.
+- Docker Compose healthcheck uses this endpoint (already configured in docker-compose.yml).
+
+### Error Boundary — `apps/web/src/components/error-boundary.tsx`
+React class component `ErrorBoundary` wrapping all dashboard pages via layout.tsx:
+- Catches any uncaught render error in any analytics page.
+- Shows a friendly error card with "Try again" button (resets state).
+- Prevents a broken chart component from crashing the entire app shell.
+Layout: `<main>` in `(dashboard)/layout.tsx` now wraps `{children}` in `<ErrorBoundary>`.
+
+### Skeleton Loaders — `apps/web/src/components/skeletons.tsx`
+Five skeleton variants matching the shape of each page layout:
+- `DashboardSkeleton` — 6 KPI cards + 3 chart placeholders + top bar
+- `TableSkeleton` — configurable row/col count for per-unit, history
+- `AnalyticsSkeleton` — 4 KPI cards + 2 charts + table (revenue, expenses, cash flow)
+- `LedgerSkeleton` — filter bar + paginated table placeholder
+- `RatiosSkeleton` — 3 sections × ratio card placeholders
+
+All dashboard pages updated to return the appropriate skeleton during initial load instead
+of a centered Loader2 spinner. Ledger page: skeleton shown for initial load only;
+subsequent filter/page changes use the existing inline tbody spinner.
+
+Removed all `Loader2` imports from the 7 affected dashboard pages (no longer needed).
+
+### Responsive Sidebar — `apps/web/src/app/(dashboard)/layout.tsx`
+Major layout refactor for mobile support:
+- **Desktop (≥ lg breakpoint)**: Sidebar rendered as always-visible `<aside>` (`hidden lg:flex`).
+- **Mobile (< lg)**: Top bar with hamburger (Menu icon) + app name. Sidebar hidden.
+- Clicking hamburger: renders a slide-in drawer (`fixed inset-y-0 left-0 z-50`) with a dark backdrop.
+- Clicking a nav link or backdrop: closes the drawer (`onNavigate` callback).
+- Close button (X icon) in drawer header.
+- Shared `SidebarContent` component: used by both desktop sidebar and mobile drawer.
+  Accepts optional `onNavigate` prop — called on any link click (closes mobile drawer).
+- No JavaScript required for desktop — layout is purely CSS-driven.
+- Auth import: `ErrorBoundary` imported here for `<main>` wrapper.
+
+### CLOUDFLARE_TUNNEL.md
+New guide file at project root covering:
+- Prerequisites (Cloudflare account, domain, Docker running, cloudflared CLI)
+- Install cloudflared on Windows / Linux / WSL
+- Authenticate with cloudflared tunnel login
+- Create named tunnel + credentials-file
+- Config file (~/.cloudflared/config.yml) with ingress rules
+- Add DNS CNAME via cloudflared tunnel route dns
+- Start tunnel + verify connectivity
+- Enable APP_PASSWORD (recommended for public access)
+- Run as background service (Windows service / systemd)
+- Optional: cloudflared via Docker Compose (token-based)
+- Troubleshooting table (502, DNS, cert errors, wrong port)
+- Security notes (mutual TLS, Cloudflare Access for SSO on top)
+
+### README.md
+Full rewrite with:
+- Feature table (all 11 modules)
+- Quick Start for Windows and Linux/Mac with numbered steps
+- First-time setup notes (auto .env copy, build time, volume persistence)
+- Configuration table (all 5 env vars with defaults and descriptions)
+- Enabling password protection step-by-step
+- Uploading a new workbook guide
+- CSV export section
+- Link to CLOUDFLARE_TUNNEL.md for external sharing
+- Architecture table + services list
+- Project layout tree
+- Development section (local dev without Docker, Prisma migrations)
+- Troubleshooting table (7 common issues + fixes)
+- Link to DEVLOG.md
+
+## Key Decisions
+
+1. **Skeleton shape matches real content**: Each skeleton mirrors the grid/card structure
+   of its page, so the layout shift is minimal when data loads. Uses Tailwind `animate-pulse`
+   on `bg-muted` boxes.
+
+2. **Mobile sidebar as drawer, not hamburger menu**: A full-height slide-in drawer keeps
+   all nav items visible. Alternative (collapsing to icon-only rail) was over-engineering
+   for a small household app that is primarily used on desktop.
+
+3. **LedgerSkeleton only on initial load**: The ledger has an inline spinner in the tbody
+   for filter/pagination changes (avoids layout jump with the filter bar already visible).
+   Skeleton shown only when `data === null && loading` — i.e., the very first load.
+
+4. **Health endpoint returns 503 on DB failure**: Docker Compose healthcheck can detect
+   DB disconnection and restart the web service. Redis failure returns "degraded" but
+   status 503 not set for Redis alone (it's optional).
+
+## Project Complete
+
+All 14 planned sprints across 4 phases are now complete:
+- Phase 1 (Sprints 1-3): Scaffolding, ETL pipeline, integrity checks, live KPIs
+- Phase 2 (Sprints 4-6): Executive dashboard, per-unit, revenue, expenses, cash flow
+- Phase 3 (Sprints 7-8): General ledger explorer, financial ratios
+- Phase 4 (Sprints 9-12): CSV export, upload history, Redis caching, date filter, auth, final polish
+
+The platform is production-ready for local and Cloudflare Tunnel deployment.
+
+## What Comes Next (Future Enhancements — Optional)
+
+Beyond the original 14-week plan, potential enhancements:
+- [ ] PDF report: one-click monthly summary PDF (revenue, expenses, ratios)
+- [ ] Dark mode toggle (currently hard-coded to system theme via Tailwind)
+- [ ] Multi-workbook comparison: show delta between two uploaded workbooks
+- [ ] Email alerts: send monthly summary email when new workbook uploaded
+- [ ] Forecasting: simple linear regression on revenue/expense trends
+
+################################################################################
+# END OF ENTRY 012
+# PROJECT COMPLETE — ALL 14 SPRINTS DELIVERED
 ################################################################################

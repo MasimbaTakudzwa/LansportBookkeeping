@@ -6,6 +6,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { formatCurrency } from "@/lib/utils";
+import { LedgerSkeleton } from "@/components/skeletons";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Types
@@ -119,6 +120,9 @@ export default function LedgerPage() {
     setPage(1);
     fetchLedger("", account, type, 1);
   }
+
+  // Initial full-page skeleton (before any data has loaded)
+  if (loading && data === null && !error && !noData) return <LedgerSkeleton />;
 
   if (error) {
     return (
