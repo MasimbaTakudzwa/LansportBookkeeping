@@ -1,7 +1,9 @@
+import React from "react";
+
 // Reusable skeleton loader components for all dashboard pages.
 
-function Bone({ className }: { className?: string }) {
-  return <div className={`animate-pulse rounded bg-muted ${className ?? ""}`} />;
+function Bone({ className, style }: { className?: string; style?: React.CSSProperties }) {
+  return <div className={`animate-pulse rounded bg-muted ${className ?? ""}`} style={style} />;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

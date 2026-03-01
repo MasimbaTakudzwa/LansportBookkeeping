@@ -194,7 +194,7 @@ export default function DashboardPage() {
         <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-6 text-center">
           <AlertTriangle className="h-8 w-8 text-destructive mx-auto mb-2" />
           <p className="font-medium text-foreground">{error}</p>
-          <button onClick={fetchAll} className="mt-3 text-sm text-primary hover:underline">
+          <button onClick={() => fetchAll()} className="mt-3 text-sm text-primary hover:underline">
             Try again
           </button>
         </div>

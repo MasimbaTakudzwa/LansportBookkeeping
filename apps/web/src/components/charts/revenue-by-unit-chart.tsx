@@ -52,8 +52,8 @@ export function RevenueByUnitChart({ data }: { data: DataPoint[] }) {
           width={110}
         />
         <Tooltip
-          formatter={(v: number, _: string, { payload }: { payload: DataPoint }) => [
-            `${formatCurrency(v)} (${payload.pct}%)`,
+          formatter={(v: number, _: string, item: { payload?: DataPoint }) => [
+            item.payload ? `${formatCurrency(v as number)} (${item.payload.pct}%)` : formatCurrency(v as number),
             "Revenue",
           ]}
         />
