@@ -34,6 +34,7 @@
 | 010     | 2026-03-01 | Redis caching + date range filter      | Phase 4, Sprint 10 (Wk 12) | COMPLETED |
 | 011     | 2026-03-01 | Auth (APP_PASSWORD) + logout           | Phase 4, Sprint 11 (Wk 13) | COMPLETED |
 | 012     | 2026-03-01 | Final polish: health, skeleton, mobile, docs | Phase 4, Sprint 12 (Wk 14) | COMPLETED |
+| 013     | 2026-03-01 | Build recovery + USD currency switch         | Maintenance                 | COMPLETED |
 
 ---
 
@@ -1189,4 +1190,162 @@ Beyond the original 14-week plan, potential enhancements:
 ################################################################################
 # END OF ENTRY 012
 # PROJECT COMPLETE — ALL 14 SPRINTS DELIVERED
+################################################################################
+
+################################################################################
+# ENTRY 013
+# DATE: 2026-03-01
+# PHASE: Maintenance
+# STATUS: COMPLETED
+################################################################################
+
+## Summary
+Full build recovery after OneDrive sync corruption broke the local working copy.
+Repository was re-cloned to a local path (no OneDrive sync). Seven sequential
+Docker build failures were diagnosed and fixed. Currency display switched from
+ZAR (South African Rand) to USD throughout the application.
+
+## What Was Done
+
+### 1. Missing package-lock.json
+`package-lock.json` was never committed to git. `npm ci` (used in Dockerfile)
+strictly requires a lockfile. Fixed by generating it via a throwaway Docker
+container (`docker run --rm -v ...:/app node:20-alpine npm install`) and
+committing the result. `autoprefixer` was also discovered to be missing from
+`devDependencies` (used in `postcss.config.mjs` but never listed) — added to
+`package.json` before regenerating the lock.
+
+### 2. next.config.ts → next.config.mjs
+Next.js 14 does not support TypeScript config files (`next.config.ts`).
+Support was only added in Next.js 15. Renamed the file to `next.config.mjs`
+and removed the TypeScript type annotation, keeping all config values identical.
+
+### 3. TypeScript compile errors (three fixes)
+Three strict-mode type errors surfaced during `next build`:
+
+- **`dashboard/page.tsx`** — `fetchAll(from?, to?)` used directly as an
+  `onClick` handler. TypeScript rejects this because the handler signature
+  must accept `MouseEvent`. Fixed: `onClick={() => fetchAll()}`.
+
+- **`revenue-by-unit-chart.tsx`** — Recharts `Tooltip` formatter destructured
+  `payload` as required (`{ payload: DataPoint }`) but the Recharts type
+  declares it optional. Fixed: typed as `item: { payload?: DataPoint }` with
+  a null guard before access.
+
+- **`skeletons.tsx`** — `Bone` component declared only `className` in its
+  props interface but was called with a `style` prop in 7 places. Fixed:
+  added `style?: React.CSSProperties` to the `Bone` props and passed it
+  through to the underlying `<div>`.
+
+### 4. Missing public/ directory
+Next.js standalone output copies `/app/public` in the Dockerfile runner stage.
+The `public/` directory did not exist in the repo, causing the COPY step to
+fail. Created `apps/web/public/.gitkeep` to track the empty directory in git.
+
+### 5. docker-entrypoint.sh — CRLF line endings
+The entrypoint script had Windows CRLF (`\r\n`) line endings. On Alpine Linux
+the shebang line became `#!/bin/sh\r`, which the kernel cannot parse, causing
+the container to crash-loop with `exec: ./docker-entrypoint.sh: not found`.
+Fixed with `sed -i 's/\r//'`. Added `.gitattributes` to enforce LF on all
+`*.sh`, `Dockerfile`, and `docker-entrypoint*` files going forward.
+
+### 6. npx prisma pulling wrong version at runtime
+The runner stage only copied `node_modules/.prisma` and `node_modules/@prisma`
+(the generated client), but not the `prisma` CLI package itself. At container
+startup `npx prisma db push` would download the latest CLI (v7.4.2) instead of
+the project's v5.22.0. Prisma 7 has a breaking schema change that rejects
+`url = env("DATABASE_URL")` in `schema.prisma`, causing an immediate crash.
+
+Fixes applied:
+- Added `COPY --from=builder /app/node_modules/prisma ./node_modules/prisma`
+  to the runner stage in `Dockerfile`.
+- Removed the broken `node_modules/.bin/prisma` symlink copy (Docker resolves
+  symlinks on COPY, breaking relative WASM file paths).
+- Changed `docker-entrypoint.sh` to call the CLI directly:
+  `node ./node_modules/prisma/build/index.js db push --accept-data-loss`.
+
+### 7. Upload returning 500 — EACCES on /app/uploads
+The web container runs as `nextjs` (uid 1001) but the `uploads_data` Docker
+named volume was initialised owned by root. `writeFile` on any upload attempt
+returned `EACCES: permission denied`.
+
+Fix: added to the Dockerfile runner stage (before `USER nextjs`):
+```
+RUN mkdir -p /app/uploads && chown nextjs:nodejs /app/uploads
+```
+Docker initialises an empty named volume by copying the image's directory
+(including ownership), so the volume is created with `nextjs:nodejs` on first
+run. Existing volumes required `docker volume rm lansportbookkeeping_uploads_data`
+to reinitialise.
+
+### 8. Added .dockerignore
+`apps/web/.dockerignore` created to exclude `node_modules/`, `.next/`, `.env`,
+and npm logs from the Docker build context. Previously the entire `node_modules`
+tree was sent to the Docker daemon on every build, dramatically increasing
+context transfer time.
+
+### 9. Currency ZAR → USD
+All currency references changed from South African Rand to US Dollar:
+
+| Location | Change |
+|---|---|
+| `src/lib/utils.ts` — `formatCurrency` | `en-ZA` / `ZAR` → `en-US` / `USD` |
+| `src/lib/utils.ts` — `formatNumber` | `en-ZA` → `en-US` |
+| 5 chart `tickFormatter` callbacks | `` `R${...}` `` → `` `$${...}` `` |
+| `dashboard/page.tsx`, `history/page.tsx` | `toLocaleString("en-ZA")` → `"en-US"` |
+| `api/export/per-unit/route.ts` | CSV headers `(ZAR)` → `(USD)` |
+| `api/export/ledger/route.ts` | CSV headers `(ZAR)` → `(USD)` |
+| `api/export/ratios/route.ts` | Unit column `"ZAR"` → `"USD"` |
+
+## Key Decisions
+
+1. **Local path, not OneDrive**: Repository moved to
+   `C:\Users\chris\Desktop\githubrepos\` (outside OneDrive sync). OneDrive
+   silently corrupts binary and lock files during sync. All future work should
+   remain on a non-synced path.
+
+2. **Committed package-lock.json**: Now tracked in git so `npm ci` always works
+   in Docker without a network call to resolve versions. Must be kept up to date
+   when `package.json` dependencies change (`npm install` locally then commit).
+
+3. **Prisma CLI via direct node call**: More reliable than npx (avoids version
+   resolution) and avoids Docker symlink resolution breaking WASM file paths.
+
+4. **`.gitattributes` for LF enforcement**: Prevents CRLF from re-entering shell
+   scripts via Windows editors. Applied project-wide for `*.sh`, `Dockerfile`,
+   and `docker-entrypoint*` patterns.
+
+## Files Changed
+
+```
+.gitattributes                                  ← NEW: enforce LF line endings
+apps/web/.dockerignore                          ← NEW: exclude node_modules from build context
+apps/web/public/.gitkeep                        ← NEW: track empty public/ directory
+apps/web/next.config.mjs                        ← NEW: replaces next.config.ts
+apps/web/next.config.ts                         ← DELETED
+apps/web/Dockerfile                             ← copy prisma CLI; fix uploads dir ownership
+apps/web/docker-entrypoint.sh                   ← LF endings; use node prisma CLI directly
+apps/web/package.json                           ← add autoprefixer devDependency
+apps/web/package-lock.json                      ← NEW: generated and committed
+apps/web/src/app/(dashboard)/dashboard/page.tsx ← onClick wrap; en-ZA→en-US
+apps/web/src/app/(dashboard)/history/page.tsx   ← en-ZA→en-US
+apps/web/src/components/charts/revenue-by-unit-chart.tsx  ← payload type fix; R→$
+apps/web/src/components/charts/revenue-trend-chart.tsx    ← R→$
+apps/web/src/components/charts/revenue-expenses-chart.tsx ← R→$
+apps/web/src/components/charts/cash-balance-chart.tsx     ← R→$
+apps/web/src/components/charts/expense-trend-chart.tsx    ← R→$
+apps/web/src/components/skeletons.tsx           ← Bone style prop; React import
+apps/web/src/lib/utils.ts                       ← ZAR→USD; en-ZA→en-US
+apps/web/src/app/api/export/per-unit/route.ts   ← CSV headers ZAR→USD
+apps/web/src/app/api/export/ledger/route.ts     ← CSV headers ZAR→USD
+apps/web/src/app/api/export/ratios/route.ts     ← unit column ZAR→USD
+```
+
+## What Comes Next
+
+No planned sprints. Platform is stable and production-ready.
+Optional future enhancements remain as listed in Entry 012.
+
+################################################################################
+# END OF ENTRY 013
 ################################################################################
