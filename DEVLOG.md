@@ -28,6 +28,7 @@
 | 004     | 2026-03-01 | Charts, per-unit table, sidebar nav    | Phase 2, Sprint 4 (Wk 4)  | COMPLETED |
 | 005     | 2026-03-01 | Revenue Analytics page + charts        | Phase 2, Sprint 5 (Wks 5-6)| COMPLETED |
 | 006     | 2026-03-01 | Expense Analytics + Cash Flow pages    | Phase 2, Sprint 6 (Wk 7-8) | COMPLETED |
+| 007     | 2026-03-01 | General Ledger Explorer (search + page)| Phase 3, Sprint 7 (Wk 9)   | COMPLETED |
 
 ---
 
@@ -670,5 +671,86 @@ Tasks:
 
 ################################################################################
 # END OF ENTRY 006
+################################################################################
+
+################################################################################
+# ENTRY 007
+# DATE: 2026-03-01
+# PHASE: Phase 3 - Advanced Features | Sprint 7 - General Ledger Explorer (Wk 9)
+# STATUS: COMPLETED
+################################################################################
+
+## Summary
+Searchable, filterable, paginated General Ledger at `/ledger`. Supports
+full-text search on description/account name, filter by account number
+and account type, 50 entries per page with page number controls.
+
+## What Was Done
+
+### API Route — `GET /api/dashboard/ledger`
+Query params: `?q=`, `?account=`, `?type=`, `?page=`
+- Dynamic WHERE clause built from params using positional binds ($1, $2, …)
+  to safely avoid SQL injection (no string interpolation for user values)
+- `q` searches LOWER(description) LIKE, account_number LIKE, LOWER(name) LIKE
+- `type` validated against the 6 known enum values before inserting into query
+- Returns: `{ entries[], total, page, pageSize: 50 }`
+- Each entry: id, date, accountNumber, accountName, accountType, description, debit, credit
+
+### Ledger Page (`(dashboard)/ledger/page.tsx`)
+Filter bar:
+- Full-text search input with 350ms debounce + clear (×) button
+- Account number text input (exact match)
+- Account type dropdown (all 6 types + "All")
+- "Clear filters" button (visible when any filter active)
+
+Table columns: Date, Account (# + name), Type badge (colour-coded), Description, Debit, Credit
+- Account name hidden on small screens (CSS `hidden sm:inline`)
+- Type badges: blue=Asset, orange=Liability, purple=Equity, green=Revenue, red=Expense, gray=Contra
+- Description truncated with full text in title tooltip
+- Debit/Credit shown as "—" when zero (tabular-nums for alignment)
+- Page totals footer row (page-visible debits + credits)
+
+Pagination:
+- Prev/Next buttons, up to 5 page number buttons
+- Smart centering: if page > 3, shows pages page-2 to page+2
+- Scrolls to top on page change
+
+Loading state: spinner replaces table body rows (no full-page flash).
+
+### Sidebar
+- General Ledger: `active: false` → `active: true`
+- 6 of 7 pages now live. Only Financial Ratios remains "Soon".
+
+## Key Decisions
+
+1. **Positional binds prevent SQL injection**: The WHERE clause uses $1, $2 etc.
+   (PostgreSQL positional parameters via Prisma's $queryRawUnsafe). User values
+   are never interpolated as strings into the query.
+
+2. **Debounced search (350ms)**: Prevents a DB round-trip on every keystroke.
+   Debounce timer is stored in a ref and cleared on each new keystroke.
+
+3. **Inline loading**: When the user changes filters or pages, the table body
+   shows a spinner without unmounting the filter bar. This avoids jarring
+   full-page reloads.
+
+4. **Page totals footer**: Shows debit/credit sums for the entries visible on
+   the current page — useful for spot-checking filtered subsets.
+
+## What Comes Next: Phase 3, Sprint 8 (Week 10) — Financial Ratios
+
+**Goal:** Financial Ratios page (final analytics module)
+
+Tasks:
+- [ ] Create `/ratios` page under `(dashboard)` route group
+- [ ] Compute and display: Operating Margin %, Net Profit Margin, ROI/ROE,
+      Current Ratio (Current Assets / Current Liabilities), Debt-to-Equity
+- [ ] Each ratio: value card + explanation text + green/yellow/red health indicator
+- [ ] Add `GET /api/dashboard/ratios` endpoint
+- [ ] Mark Financial Ratios sidebar item as `active: true` in layout
+- [ ] After ratios: all 7 sidebar pages live = Phase 3 complete
+
+################################################################################
+# END OF ENTRY 007
 # NEXT ENTRY WILL BE APPENDED BELOW THIS LINE
 ################################################################################
